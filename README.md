@@ -25,6 +25,32 @@ Ajuste a constante `CAMINHO` no início do script para apontar ao seu arquivo Ex
 
 Os 8 gráficos são salvos como `.png` no diretório de execução e exibidos com `plt.show()`. Todas as tabelas são impressas no terminal.
 
+## Galeria de gráficos
+
+### 1. Boxplots por Sexo — Valor Total, Idade e Altura
+![Boxplots por sexo](01_boxplot_por_sexo.png)
+
+### 2. Histograma da Idade do Cliente (média e mediana)
+![Histograma de Idade](02_hist_idade.png)
+
+### 3. Histograma do Valor Total por venda
+![Histograma de Valor Total](03_hist_valor_total.png)
+
+### 4. Top 5 vendedores por Valor Total
+![Top 5 vendedores](04_top5_vendedores.png)
+
+### 5. Distribuição de vendas por Produto
+![Pizza de produtos](05_pizza_produtos.png)
+
+### 6. Dispersão Idade × Valor Total por Sexo (com linha de tendência)
+![Dispersão Idade x Valor](06_dispersao_idade_valor.png)
+
+### 7. Heatmap — Vendedor × Produto (Valor Total médio)
+![Heatmap Vendedor x Produto](07_heatmap_vendedor_produto.png)
+
+### 8. Análise de Pareto — Produtos
+![Pareto de Produtos](08_pareto_produtos.png)
+
 ## Principais resultados
 
 - Vendedor líder: **Fernando Oliveira Neto** — R$ 631.008,53 (14,67% do total).
