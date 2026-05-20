@@ -14,12 +14,27 @@ Trabalho de Probabilidade e Estatística — análise descritiva, gráficos e te
 
 ## Como executar
 
+Instale as dependências:
+
 ```bash
-pip install pandas numpy matplotlib seaborn scipy openpyxl
-python analise_vendas.py
+pip install -r requirements.txt
 ```
 
-Ajuste a constante `CAMINHO` no início do script para apontar ao seu arquivo Excel.
+Coloque o arquivo `Grupo_06_Dados_Vendas.xlsx` na raiz do projeto (mesma pasta dos `.py`).
+
+**Gráficos estáticos (gera 8 PNGs no diretório):**
+
+```bash
+py -3 analise_vendas.py
+```
+
+**Dashboard interativo (Streamlit + Plotly):**
+
+```bash
+py -3 -m streamlit run dashboard.py
+```
+
+O dashboard abre em `http://localhost:8501` com filtros (sexo, produto, vendedor, faixa etária, slider de idade), KPIs, gráficos interativos e download de CSV.
 
 ## Saídas
 

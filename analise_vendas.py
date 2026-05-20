@@ -5,6 +5,7 @@ Grupo 06
 """
 import sys
 import io
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,21 +19,32 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # ---------------- Configuração visual ----------------
 COR_PRIMARIA = "#1F3864"
+COR_SECUNDARIA = "#457B9D"
 COR_DESTAQUE = "#E63946"
+COR_NEUTRA = "#6C7A89"
 PALETA_AZUL = "Blues_d"
+ESCALA_AZUL = ["#DCE7F2", "#B7CCE3", "#7FA3CB", "#4A78AE", "#1F3864"]
 
-sns.set_style("white")
+sns.set_theme(style="whitegrid", font="DejaVu Sans")
 plt.rcParams.update({
     "axes.spines.top": False,
     "axes.spines.right": False,
+    "axes.titleweight": "bold",
+    "axes.titlesize": 13,
+    "axes.titlecolor": COR_PRIMARIA,
+    "axes.labelcolor": "#222",
+    "axes.edgecolor": "#CCD3DE",
     "axes.grid": True,
-    "grid.alpha": 0.3,
-    "figure.dpi": 100,
-    "savefig.dpi": 120,
+    "grid.alpha": 0.25,
+    "grid.color": "#EEF2F7",
+    "figure.dpi": 110,
+    "savefig.dpi": 150,
     "savefig.bbox": "tight",
+    "font.size": 11,
+    "legend.frameon": False,
 })
 
-CAMINHO = r"C:\Users\Ryan\AppData\Local\Packages\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\LocalState\sessions\C219C86838064B5C439E8517AE5F1954D4500774\transfers\2026-20\Grupo_06_Dados_Vendas.xlsx"
+CAMINHO = str(Path(__file__).parent / "Grupo_06_Dados_Vendas.xlsx")
 
 FAIXAS_IDADE = [18, 25, 35, 45, 55, 75]
 ROTULOS_IDADE = ["18–25", "26–35", "36–45", "46–55", "56–75"]
@@ -57,12 +69,19 @@ def cabecalho(titulo):
 def estilizar_eixo(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.3)
+    ax.grid(alpha=0.25)
+
+
+def caixa_anotacao(ax, texto, x=0.98, y=0.97, ha="right", va="top"):
+    ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va,
+            fontsize=9.5, color="#222",
+            bbox=dict(boxstyle="round,pad=0.45", fc="white",
+                      ec=COR_PRIMARIA, lw=1, alpha=0.92))
 
 
 # ---------------- 1) Carregamento ----------------
 def carregar_dados(caminho=CAMINHO):
-    df = pd.read_excel(caminho, sheet_name="Dados")
+    df = pd.read_excel(caminho, sheet_name="5_Dados Brutos", header=1)
     df.columns = [c.strip() for c in df.columns]
     # Tipos numéricos
     for c in ["Quantidade", "Valor Unitário (R$)", "Valor Total (R$)",
@@ -125,14 +144,26 @@ def gerar_graficos(df):
     variaveis = [("Valor Total (R$)", "Valor Total por Sexo"),
                  ("Idade do Cliente", "Idade por Sexo"),
                  ("Altura do Cliente (m)", "Altura por Sexo")]
+    g_m = df.loc[df["Sexo"] == "Masculino", "Valor Total (R$)"].dropna()
+    g_f = df.loc[df["Sexo"] == "Feminino", "Valor Total (R$)"].dropna()
+    t_stat, p_valor = stats.ttest_ind(g_m, g_f, equal_var=False)
     for ax, (col, titulo) in zip(axes, variaveis):
         sns.boxplot(data=df, x="Sexo", y=col, ax=ax,
-                    palette=paleta_sexo, hue="Sexo", legend=False)
-        ax.set_title(titulo, fontweight="bold", color=COR_PRIMARIA)
+                    palette=paleta_sexo, hue="Sexo", legend=False,
+                    width=0.55, fliersize=3, linewidth=1.2)
+        ax.set_title(titulo)
         ax.set_xlabel("")
         estilizar_eixo(ax)
         if "R$" in col:
             ax.yaxis.set_major_formatter(mticker.FuncFormatter(fmt_reais_k))
+    decisao = "rejeita H₀" if p_valor < 0.05 else "não rejeita H₀"
+    caixa_anotacao(
+        axes[0],
+        f"Teste t (Welch)\nt = {t_stat:.3f}   p = {p_valor:.3f}\n→ {decisao} (α = 0,05)",
+        x=0.5, y=-0.18, ha="center", va="top",
+    )
+    fig.suptitle("Distribuição por sexo — Valor, Idade e Altura",
+                 color=COR_PRIMARIA, fontsize=14, fontweight="bold", y=1.02)
     plt.tight_layout()
     plt.savefig("01_boxplot_por_sexo.png")
     plt.show()
@@ -140,18 +171,20 @@ def gerar_graficos(df):
     # 2.2 Histograma Idade com média/mediana
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.hist(df["Idade do Cliente"], bins=15, color=COR_PRIMARIA,
-            edgecolor="white", alpha=0.85)
+            edgecolor="white", alpha=0.88)
     media_i = df["Idade do Cliente"].mean()
     mediana_i = df["Idade do Cliente"].median()
+    dp_i = df["Idade do Cliente"].std(ddof=1)
     ax.axvline(media_i, color=COR_DESTAQUE, linewidth=2,
                label=f"Média = {media_i:.1f}")
     ax.axvline(mediana_i, color="black", linestyle="--", linewidth=2,
                label=f"Mediana = {mediana_i:.1f}")
-    ax.set_title("Distribuição da Idade do Cliente",
-                 fontweight="bold", color=COR_PRIMARIA)
-    ax.set_xlabel("Idade")
+    ax.set_title("Distribuição da Idade do Cliente")
+    ax.set_xlabel("Idade (anos)")
     ax.set_ylabel("Frequência")
-    ax.legend()
+    ax.legend(loc="upper right")
+    caixa_anotacao(ax, f"n = {len(df)}   s = {dp_i:.1f}\nassimetria = {df['Idade do Cliente'].skew():.2f}",
+                   x=0.02, y=0.97, ha="left")
     estilizar_eixo(ax)
     plt.tight_layout()
     plt.savefig("02_hist_idade.png")
@@ -160,16 +193,21 @@ def gerar_graficos(df):
     # 2.3 Histograma Valor Total
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.hist(df["Valor Total (R$)"], bins=20, color=COR_PRIMARIA,
-            edgecolor="white", alpha=0.85)
+            edgecolor="white", alpha=0.88)
     media_v = df["Valor Total (R$)"].mean()
+    mediana_v = df["Valor Total (R$)"].median()
+    cv_v = df["Valor Total (R$)"].std(ddof=1) / media_v * 100
     ax.axvline(media_v, color=COR_DESTAQUE, linewidth=2,
                label=f"Média = R$ {media_v:,.0f}")
-    ax.set_title("Distribuição do Valor Total por Venda",
-                 fontweight="bold", color=COR_PRIMARIA)
+    ax.axvline(mediana_v, color="black", linestyle="--", linewidth=2,
+               label=f"Mediana = R$ {mediana_v:,.0f}")
+    ax.set_title("Distribuição do Valor Total por Venda")
     ax.set_xlabel("Valor Total (R$)")
     ax.set_ylabel("Frequência")
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(fmt_reais_k))
-    ax.legend()
+    ax.legend(loc="upper right")
+    caixa_anotacao(ax, f"n = {len(df)}   CV = {cv_v:.1f}%\nreceita total = R$ {df['Valor Total (R$)'].sum()/1e6:.2f} M",
+                   x=0.55, y=0.97, ha="left")
     estilizar_eixo(ax)
     plt.tight_layout()
     plt.savefig("03_hist_valor_total.png")
@@ -213,22 +251,25 @@ def gerar_graficos(df):
     for sexo, cor in paleta_sexo.items():
         sub = df[df["Sexo"] == sexo]
         ax.scatter(sub["Idade do Cliente"], sub["Valor Total (R$)"],
-                   color=cor, alpha=0.6, edgecolor="white",
-                   s=50, label=sexo)
-    x = df["Idade do Cliente"].values
-    y = df["Valor Total (R$)"].values
+                   color=cor, alpha=0.65, edgecolor="white",
+                   s=55, label=sexo)
+    x = df["Idade do Cliente"].to_numpy()
+    y = df["Valor Total (R$)"].to_numpy()
     coef = np.polyfit(x, y, 1)
     r = np.corrcoef(x, y)[0, 1]
     xs = np.linspace(x.min(), x.max(), 100)
     ax.plot(xs, np.polyval(coef, xs), color="black",
             linestyle="--", linewidth=2,
-            label=f"Tendência (r = {r:.3f})")
-    ax.set_title("Idade × Valor Total por Sexo",
-                 fontweight="bold", color=COR_PRIMARIA)
-    ax.set_xlabel("Idade")
+            label=f"Tendência OLS (r = {r:.3f})")
+    sinal = "+" if coef[1] >= 0 else "−"
+    eq = f"y = {coef[0]:,.1f}·x {sinal} {abs(coef[1]):,.0f}"
+    ax.set_title("Idade × Valor Total por Sexo")
+    ax.set_xlabel("Idade (anos)")
     ax.set_ylabel("Valor Total (R$)")
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(fmt_reais_k))
-    ax.legend()
+    ax.legend(loc="upper left")
+    caixa_anotacao(ax, f"{eq}\nr = {r:.3f}   r² = {r**2:.3f}",
+                   x=0.98, y=0.04, ha="right", va="bottom")
     estilizar_eixo(ax)
     plt.tight_layout()
     plt.savefig("06_dispersao_idade_valor.png")
@@ -295,10 +336,12 @@ def analises_complementares(df):
                           aggfunc="mean", fill_value=0)
     fig, ax = plt.subplots(figsize=(11, max(5, 0.45 * len(heat))))
     sns.heatmap(heat, cmap="Blues", annot=True, fmt=".0f",
-                linewidths=0.5, linecolor="white",
-                cbar_kws={"label": "Valor médio (R$)"}, ax=ax)
-    ax.set_title("Heatmap — Vendedor × Produto (Valor Total médio)",
-                 fontweight="bold", color=COR_PRIMARIA)
+                linewidths=0.6, linecolor="white",
+                annot_kws={"fontsize": 9},
+                cbar_kws={"label": "Ticket médio (R$)"}, ax=ax)
+    ax.set_title("Heatmap — Ticket médio por Vendedor × Produto")
+    ax.set_xlabel("")
+    ax.set_ylabel("")
     plt.tight_layout()
     plt.savefig("07_heatmap_vendedor_produto.png")
     plt.show()
@@ -334,13 +377,19 @@ def analises_complementares(df):
 
     ax2 = ax1.twinx()
     ax2.plot(pareto.index, pareto["% Acumulado"],
-             color=COR_DESTAQUE, marker="o", linewidth=2)
+             color=COR_DESTAQUE, marker="o", linewidth=2.2)
     ax2.axhline(80, color="gray", linestyle="--", linewidth=1)
+    for xi, yi in zip(pareto.index, pareto["% Acumulado"]):
+        ax2.annotate(f"{yi:.1f}%", (xi, yi), textcoords="offset points",
+                     xytext=(0, 10), ha="center", fontsize=9,
+                     color=COR_DESTAQUE, fontweight="bold")
     ax2.set_ylabel("% Acumulado", color=COR_DESTAQUE)
-    ax2.set_ylim(0, 110)
+    ax2.set_ylim(0, 115)
     ax2.spines["top"].set_visible(False)
-    ax1.set_title("Análise de Pareto — Produtos",
-                  fontweight="bold", color=COR_PRIMARIA)
+    ax2.grid(False)
+    ax1.set_title("Análise de Pareto — Produtos")
+    caixa_anotacao(ax1, f"{n80} produto(s) ≈ 80% da receita",
+                   x=0.98, y=0.97, ha="right")
     plt.tight_layout()
     plt.savefig("08_pareto_produtos.png")
     plt.show()
